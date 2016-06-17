@@ -1,0 +1,15 @@
+html, body {
+    background-color: #C58D57;
+}
+
+#header {
+    text-align: center;
+    font-size: 300%;
+    padding-bottom: 25px;
+}
+
+.whole {
+    text-align: center;
+    font-size: 115%;
+    padding-top: 25px;
+}

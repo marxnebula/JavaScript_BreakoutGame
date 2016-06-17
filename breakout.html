@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- BREAKOUT ARCADE GAME -->
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="style.css">
+    <title>Breakout Arcade Game</title>
+    
+    
+    <div id="header">
+    	<p> BREAKOUT ARCADE GAME </p>
+    </div>
+    
+    
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+    
+</head>
+
+<body>
+
+<canvas id="myCanvas" width="640" height="320"></canvas>
+
+<div class="whole">
+	<p> Use the arrow keys to move the paddle! </p>
+	<p> The ball speed increases with each level. </p>
+	<p> Be careful of the occassional invisible bricks! </p>
+</div>
+
+
+<script>
+
+	// Get the canvas by ID
+	var canvas = document.getElementById("myCanvas");
+	
+	// Store the 2D rendering context
+	var ctx = canvas.getContext("2d");
+	
+	// Number of lives for user
+	var lives = 3
+	
+	// Stores the users score
+	var score = 0;
+	
+	// Store level
+	var level = 1;
+	
+	
+	/* PADDLE */
+	
+	// Paddle height
+	var paddleHeight = 10;
+	
+	// Paddle width
+	var paddleWidth = 75;
+	
+	// Paddle x position
+	var paddleX = (canvas.width-paddleWidth) / 2;
+	
+	// Paddles left and right movement speed
+	var paddleSpeed = 7;
+	
+	// Is user pressing the right arrow
+	var isRightPressed = false;
+	
+	// Is user pressing the left arrow
+	var isLeftPressed = false;
+	
+	
+	/* BALL */
+	
+	// X position of the ball
+	var x = canvas.width / 2;
+		
+	// Y position of the ball
+	var y = canvas.height - 30;
+	
+	// Change in x
+	var dx = 2 + (level * 0.25);
+	
+	// Change in y
+	var dy = -2 - (level * 0.25);
+	
+	// Radius of ball
+	var ballRadius = 10;
+	
+	
+	/* BRICKS */
+	
+	// Number of rows of bricks
+	var brickRowCount = 3;
+	
+	// Number of columns of bricks
+	var brickColumnCount = 7;
+	
+	// Brick width
+	var brickWidth = 75;
+	
+	// Brick height
+	var brickHeight = 20;
+	
+	// Brick padding
+	var brickPadding = 10;
+	
+	// Brick color for bottom row (make it random)
+	var brickColorBottom = getRandomColor();
+	
+	// Brick color for middle row (make it random)
+	var brickColorMiddle = getRandomColor();
+	
+	// Brick color for top row (make it random)
+	var brickColorTop = getRandomColor();
+	
+	// Offset at top of brick
+	var brickOffsetTop = 30;
+	
+	// Offset at left of brick
+	var brickOffsetLeft = 30;
+	
+	// Array to store each brick
+	var bricks = [];
+	
+	// Add each brick to the array
+	// Loop through columns
+	for(var brickC = 0; brickC < brickColumnCount; brickC++) {
+		
+	    bricks[brickC] = [];
+	    
+	    // Loop through rows
+	    for(var brickR = 0; brickR < brickRowCount; brickR++) {
+	    	
+	    	// Set the position of the bricks
+	    	// Add a status property to each brick object to determine if we want to draw it or not (1 = alive, 0 = dead)
+	        bricks[brickC][brickR] = { x: 0, y: 0 , status: 1};
+	    }
+	}
+	
+	
+	
+	
+	// Event listener for keydown
+	document.addEventListener("keydown", keyDownHandler, false);
+	
+	// Event listener for keyup
+	document.addEventListener("keyup", keyUpHandler, false);
+	
+	
+	
+	
+	// This function will be executed when the keyboard event is fired when a key is pressed
+	function keyDownHandler(e) {
+		
+		// If keycode 39 is down
+	    if(e.keyCode == 39) {
+	    	
+	    	// Set isRightPressed to true
+	        isRightPressed = true;
+	    }
+	    // Else if keybode 37 is down
+	    else if(e.keyCode == 37) {
+	    	
+	    	// Set isLeftPressed to true
+	        isLeftPressed = true;
+	    }
+	}
+
+	// This function will be executed when the keyboard event is fired when a key is STOPS being pressed
+	function keyUpHandler(e) {
+		
+		// If keycode 39 is released
+	    if(e.keyCode == 39) {
+	    	
+	    	// Set isRightPressed to false
+	        isRightPressed = false;
+	    }
+	    // Else if keycode 37 is released
+	    else if(e.keyCode == 37) {
+	    	
+	    	// Set isLeftPressed to false
+	        isLeftPressed = false;
+	    }
+	}
+	
+	
+	// This function checks for collision between the ball and the bricks.
+	// The bricks status is set to 0 if they collide and 1 point is added to the users score.
+	function collisionDetection() {
+		
+		// Loop through bricks columns
+	    for(brickC = 0; brickC < brickColumnCount; brickC++) {
+	    	
+	    	// Loop through the bricks rows
+	        for(brickR = 0; brickR < brickRowCount; brickR++) {
+	        	
+	        	// Temp variable for storing current index brick
+	            var tempBrick = bricks[brickC][brickR];
+	            
+	            // If the temp bricks status is 1
+	            if(tempBrick.status == 1) {
+	            	
+		            // If the ball is between the bricks x and y position (meaning overlapping it)
+		            if((x >= tempBrick.x) && (x <= tempBrick.x + brickWidth) && (y >= tempBrick.y) && (y <= tempBrick.y + brickHeight)) {
+		            	
+		            	// Set dy to opposite sign
+		                dy = -dy;
+		                
+		                // Set the status to 0 (meaning the brick is dead!)
+		                tempBrick.status = 0;
+		                
+		                // Add 1 to users score
+		                score++;
+		                
+		                // If the score is equal to the number of bricks then user wins and advances
+		                if(score == (brickRowCount * brickColumnCount * level)) {
+	                        
+	                        // Loop through the bricks columns
+						    for(brickC = 0; brickC < brickColumnCount; brickC++) {
+						    	
+						    	// Loops through the bricks rows
+						        for(brickR = 0; brickR < brickRowCount; brickR++) {
+						        	
+						        	tempBrick = bricks[brickC][brickR].status = 1;
+						        	
+						        }
+						        
+						    }
+						    
+						    // Add 1 to level
+						    level++;
+						    
+						    // Reset the ball position
+						    x = canvas.width / 2;
+						    y = canvas.height - 30;
+						    
+						    // Reset the ball movement direction
+						    dx = 2 + (level * 0.25);
+						    dy = -2 - (level * 0.25);
+						    
+						    // Reset the paddle position
+						    paddleX = (canvas.width - paddleWidth) / 2;
+						    
+						    // Change the brick color
+						    brickColorBottom = getRandomColor();
+						    brickColorMiddle = getRandomColor();
+						    brickColorTop = getRandomColor();
+						   
+	                    }
+		            }
+	            }
+	        }
+	    }
+	}
+	
+	
+	// Function for getting random color.
+	// Color is used for bricks
+	function getRandomColor() {
+		
+		// Splits each number/char into an array
+	    var letters = '0123456789ABCDEF'.split('');
+	    
+	    // Color will be returned
+	    var color = '#';
+	    
+	    // Loop will add a random value in the array index
+	    for (var i = 0; i < 6; i++ ) {
+	        color += letters[Math.floor(Math.random() * 16)];
+	    }
+	    
+	    // Return color
+	    return color;
+	}
+	
+	
+	// Draw score function
+	function drawScore() {
+		
+		// Draw the users score
+	    ctx.font = "16px Arial";
+	    ctx.fillStyle = "#0095DD";
+	    ctx.fillText("Score: " + score, 8, 20);
+	}
+	
+	// Draw users lives function
+	function drawLives() {
+		
+		// Draw the users number of lives
+	    ctx.font = "16px Arial";
+	    ctx.fillStyle = "#0095DD";
+	    ctx.fillText("Lives: " + lives, canvas.width - 65, 20);
+	}
+	
+	// Draw which level number user is on function
+	function drawLevelNumber() {
+		
+		// Draw the users number of lives
+	    ctx.font = "16px Arial";
+	    ctx.fillStyle = brickColorTop;
+	    ctx.fillText("Level: " + level, (canvas.width / 2) - 30, 20);
+	}
+	
+	// Draw paddle function
+	function drawPaddle() {
+		
+		// Draw the paddle
+	    ctx.beginPath();
+	    ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+	    ctx.fillStyle = "#0092C5";
+	    ctx.fill();
+	    ctx.closePath();
+	    
+	}
+	
+	// Draw ball function
+	function drawBall() {
+		
+		// Draw the ball
+		ctx.beginPath();
+		ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+		ctx.fillStyle = "#FF4C55";
+		ctx.fill();
+		ctx.closePath();
+		
+	}
+	
+	// Draw bricks function
+	function drawBricks() {
+		
+		// Loop through the bricks columns
+	    for(brickC = 0; brickC < brickColumnCount; brickC++) {
+	    	
+	    	// Loops through the bricks rows
+	        for(brickR = 0; brickR < brickRowCount; brickR++) {
+	        	
+	        	if(bricks[brickC][brickR].status == 1) {
+	        	
+		        	// Variable for the x position of the brick
+		            var brickX = (brickC * (brickWidth + brickPadding)) + brickOffsetLeft;
+		            
+		            // Variable for the y position of the brick
+		            var brickY = (brickR * (brickHeight + brickPadding)) + brickOffsetTop;
+		            
+		            // Set the bricks x position
+		            bricks[brickC][brickR].x = brickX;
+		            
+		            // Set the bricks y position
+		            bricks[brickC][brickR].y = brickY;
+		            
+		            // Draw the bricks
+		            ctx.beginPath();
+		            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+		            
+		            // If brickR is 0
+		            if(brickR == 0) {
+		            	// Set the color for the top brick
+		            	ctx.fillStyle = brickColorTop;
+		            }
+		            // Else if brickR is 1
+		            else if(brickR == 1) {
+		            	// Set the color for the middle brick
+		            	ctx.fillStyle = brickColorMiddle;
+		            }
+		            else
+		            {
+		            	// Set the color for the bottom brick
+		            	ctx.fillStyle = brickColorBottom;
+		            }
+		            
+		            ctx.fill();
+		            ctx.closePath();
+		            
+	        	}
+	        }
+	    }
+	}
+	
+	
+	// Update function
+	function update() {
+		
+		// If the ball touches the left or right edge then reverse x direction
+	    // Remember to take the ballRadius into account
+	    if((x + dx > (canvas.width - ballRadius)) || (x + dx < ballRadius)) {
+	    	
+	    	// Set dx to opposite sign
+		    dx = -dx;
+		}
+		
+		// If the ball touches the top edge then reverse y direction
+		// Remember to take the ballRadius into account
+		if((y + dy < ballRadius)) {
+			
+			// Set dy to opposite sign
+		    dy = -dy;
+		}
+		// Else if the ball touches the bottom edge
+		else if(y + dy > canvas.height-ballRadius) {
+			
+			// If the ball is between the paddle then reverse y direction.
+			// I added 5 for a little cushion
+			if((x + 5 >= paddleX) && (x - 5 <= paddleX + paddleWidth)) {
+				
+				// Set dy to opposite sign
+		        dy = -dy;
+		    }
+		    // Else it is game over
+		    else {
+			    
+			    // Subtract 1 from lives
+			    lives--;
+			    
+			    // If lives is 0
+				if(lives == 0) {
+					
+					// Alert user the game is over
+				    alert("GAME OVER");
+				    
+				    // Reload the document
+				    document.location.reload();
+				}
+				else {
+					
+					// Reset the ball position
+				    x = canvas.width / 2;
+				    y = canvas.height - 30;
+				    
+				    // Reset the ball movement direction
+				    dx = 2 + (level * 0.25);
+				    dy = -2 - (level * 0.25);
+				    
+				    // Reset the paddle position
+				    paddleX = (canvas.width - paddleWidth) / 2;
+				}
+		    }
+		     
+		}
+	    
+	    
+	    // If isRightPressed is true and the paddle is within the bounds of the right edge
+	    if(isRightPressed && paddleX < canvas.width-paddleWidth) {
+	    	
+	    	// Add the paddleSpeed to paddleX
+		    paddleX += paddleSpeed;
+		}
+		// Else if isLeftPressed is true and the paddle is within the bounds of the left edge
+		else if(isLeftPressed && paddleX > 0) {
+			
+			// Subtract the paddleSpeed from paddleX
+		    paddleX -= paddleSpeed;
+		}
+	    
+		
+		// Increment the position of the ball
+		x += dx;
+    	y += dy;
+    	
+    	
+    	/*
+		 * The update() function is now getting executed again and again within a requestAnimationFrame() loop, 
+		 * but instead of the fixed 10 milliseconds frame rate(from setInterval), we are giving control of the framerate back to the browser. 
+		 * It will sync the framerate accordingly and render the shapes only when needed. This produces a more efficient, 
+		 * smoother animation loop than the older setInterval() method.
+		*/
+    	requestAnimationFrame(update);
+		
+	}
+	
+	// Draw function
+	function draw() {
+		
+		// Clear the canvas content
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		
+		
+		// Call the function drawBall()
+	    drawBall();
+	    
+	    // Call the functon drawPaddle()
+	    drawPaddle();
+	    
+	    // Call the function drawScore()
+	    drawScore();
+	    
+	    // Call the function drawLives()
+	    drawLives();
+	    
+	    // Call the function drawLevelNumber()
+	    drawLevelNumber();
+	    
+	    // Call the function collisionDetection()
+	    collisionDetection();
+	    
+	    // Call the function drawBricks()
+	    drawBricks();
+	    
+		
+		/*
+		 * The draw() function is now getting executed again and again within a requestAnimationFrame() loop, 
+		 * but instead of the fixed 10 milliseconds frame rate(from setInterval), we are giving control of the framerate back to the browser. 
+		 * It will sync the framerate accordingly and render the shapes only when needed. This produces a more efficient, 
+		 * smoother animation loop than the older setInterval() method.
+		*/
+		requestAnimationFrame(draw);
+	}
+	
+	
+	// Call the function update()
+	update();
+	
+	// Call the function draw()
+	draw();
+	
+</script>
+
+</body>
+</html>
